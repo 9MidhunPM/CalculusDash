@@ -6,6 +6,11 @@
 #include <cstdio>
 #include <cstdlib>
 
+//TEXTURESSSS
+Texture2D playerTexture;
+Texture2D floorTexture;
+Texture2D backgroundTexture;
+
 //Constants i suppose
 const float gravity = 0.8f;
 const float jumpForce = 12.0f;
@@ -79,7 +84,8 @@ public:
     void Draw() {
     Vector2 origin = { width / 2, height / 2 };
     Vector2 center = { pos.x + width / 2, pos.y + height / 2 };
-    DrawRectanglePro({ center.x, center.y, width, height }, origin, rotation, BLUE);
+    Color tint = (pos.y + height / 2 < GetScreenHeight() / 2) ? RED : BLUE;
+    DrawTexturePro(playerTexture,{0, 0, (float)playerTexture.width, (float)playerTexture.height},{ center.x, center.y, width, height }, origin, rotation, tint);
     }
 
 
@@ -167,7 +173,7 @@ std::vector<Spike> spikes;
 std::vector<Box> boxes;
 std::vector<Particle> particles;
 
-Player p1(100, screenHeight - TILE_SIZE * 3 );
+Player p1(400, screenHeight - TILE_SIZE * 3 );
 
 Camera2D camera = { 0 };
 
@@ -244,7 +250,7 @@ void UpdateParticles() {
     }
 }
 void ResetGame() {
-    p1.pos = { 100, screenHeight - TILE_SIZE * 3 };
+    p1.pos = { 400, screenHeight - TILE_SIZE * 3 };
     p1.velocityY = 0;
     p1.isGrounded = false;
 
@@ -266,9 +272,13 @@ int main() {
     InitWindow(screenWidth, screenHeight, "Geometry Dash v2");
     SetTargetFPS(60);
     
+    floorTexture = LoadTexture("assets/floor.png");
+    playerTexture = LoadTexture("assets/player.png");
+    backgroundTexture = LoadTexture("assets/background.png");
+    SetTextureWrap(backgroundTexture, TEXTURE_WRAP_REPEAT);
+
     LoadLevelFromFile("level.txt");
     LoadLevel();
-
 
     camera.target = {p1.pos.x + screenWidth/4, screenHeight/2.0f};
     camera.offset = {screenWidth/2.0f, screenHeight/2.0f};
@@ -277,7 +287,19 @@ int main() {
 
     while (!WindowShouldClose()) {
         BeginDrawing();
-        ClearBackground(RAYWHITE);
+        ClearBackground(BLACK);
+
+        Rectangle src = {p1.pos.x * 0.8f, 0, (float)screenWidth, (float)screenHeight};
+        Rectangle dst = {0, 0, (float)screenWidth, (float)screenHeight};
+        DrawTexturePro(backgroundTexture, src, dst, {0,0}, 0.0f, WHITE);
+
+        DrawRectangleGradientV(
+            0, 0,
+            screenWidth, screenHeight,
+            Fade(RED, 0.4f),   // Top tint
+            Fade(BLUE, 0.4f)     // Bottom tint
+        );
+
 
         if(gameState == START){
             if(IsKeyPressed(KEY_ENTER)) gameState = PLAYING;
@@ -308,6 +330,13 @@ int main() {
             // Combined collision logic for ground and boxes
             std::vector<Rectangle> allRects = groundTiles;
             for (auto& b : boxes) allRects.push_back(b.GetRect());
+
+            // Check for spike collision
+            for (auto& s : spikes) {
+                if (CheckCollisionRecs(p1.GetRect(), s.GetRect())) {
+                    gameState = GAMEOVER;
+                }
+            }
 
             for (auto& rect : allRects) {
                 if (CheckCollisionRecs(p1.GetRect(), rect)) {
@@ -360,15 +389,6 @@ int main() {
                 }
             }
 
-
-
-            // Check for spike collision
-            for (auto& s : spikes) {
-                if (CheckCollisionRecs(p1.GetRect(), s.GetRect())) {
-                    gameState = GAMEOVER;
-                }
-            }
-
             BeginMode2D(camera);
 
              // Draw background color division
@@ -377,10 +397,10 @@ int main() {
             float worldRight = camera.target.x + screenWidth;
             
             // Top half - blue tint
-            DrawRectangle(worldLeft, 0, worldRight - worldLeft, worldY, ColorAlpha(BLUE, 0.1f));
+            //DrawRectangle(worldLeft, 0, worldRight - worldLeft, worldY, ColorAlpha(BLUE, 0.1f));
             
             // Bottom half - red tint
-            DrawRectangle(worldLeft, worldY, worldRight - worldLeft, screenHeight - worldY, ColorAlpha(RED, 0.1f));
+            //DrawRectangle(worldLeft, worldY, worldRight - worldLeft, screenHeight - worldY, ColorAlpha(RED, 0.1f));
 
             for(auto& particle : particles){
                 particle.Draw();
@@ -388,7 +408,12 @@ int main() {
 
             p1.Draw();
 
-            for (auto& g : groundTiles) DrawRectangleRec(g, DARKGRAY);
+            for (auto& g : groundTiles){
+                float centerY = g.y + g.height / 2;
+                Color redTint = { 255, 60, 60, 255 };
+                Color tint = (centerY < GetScreenHeight() / 2) ? RED : BLUE;
+                DrawTexturePro(floorTexture,{ 0, 0, (float)floorTexture.width, (float)floorTexture.height },g,{ 0, 0 },0.0f,tint);
+            }
             for (auto& b : boxes) b.Draw();
             for (auto& s : spikes) s.Draw();
             
@@ -406,6 +431,10 @@ int main() {
 
         EndDrawing();
     }
+
+    //UNLOAD DA TAXTURES
+    UnloadTexture(playerTexture);
+    UnloadTexture(floorTexture);
 
     CloseWindow();
     return 0;
