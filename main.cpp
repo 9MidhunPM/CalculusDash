@@ -1,7 +1,9 @@
 #include "raylib.h"
 #include <vector>
-#include "string.h"
+#include <cstring>
+#include <string>
 #include "cmath"
+#include <cstdio>
 #include <cstdlib>
 
 //Constants i suppose
@@ -19,29 +21,10 @@ const int TILE_SIZE = 40;
 const float scrollSpeed = 4.0f;
 
 
-const char* level[] = {
-    "##############################################################",
-    "##############################################################",
-    "........................................B.......................",
-    "................................................................",
-    "................................................................",
-    "................................................................",
-    "................................................................",
-    "................................................................",
-    "................................................................",
-    "................................................................",
-    ".............................B..................................",
-    "..........................B..B..................................",
-    ".......................B..B..B..................................",
-    "....................B..B..B..B..................................",
-    ".................B..B..B..B..B..................................",
-    ".............BB..B..B..B..B..B................................",
-    "###########^^##^^#^^#^^#^^#^^#################################",
-    "##############################################################"
-};
+std::vector<std::string> level;
 
-const int levelRows = sizeof(level) / sizeof(level[0]);
-const int levelCols = strlen(level[0]);
+int levelRows = level.size();
+int levelCols = level.empty() ? 0 : level[0].size();
 
 enum GameState { START, PLAYING, GAMEOVER };
 GameState gameState = START;
@@ -188,6 +171,30 @@ Player p1(100, screenHeight - TILE_SIZE * 3 );
 
 Camera2D camera = { 0 };
 
+void LoadLevelFromFile(const char* filename) {
+    level.clear();
+    FILE* file = fopen(filename, "r");
+    if (file == NULL) {
+        TraceLog(LOG_ERROR, "Could not open level file!");
+        return;
+    }
+
+    char buffer[1024];
+    while (fgets(buffer, sizeof(buffer), file)) {
+        // Remove trailing newline
+        buffer[strcspn(buffer, "\n")] = '\0';
+        level.push_back(std::string(buffer));
+    }
+
+    fclose(file);
+
+    // Update level dimensions
+    levelRows = level.size();
+    levelCols = level.empty() ? 0 : level[0].size();
+
+}
+
+
 void LoadLevel() {
     for (int y = 0; y < levelRows; y++) {
         for (int x = 0; x < levelCols; x++) {
@@ -246,7 +253,9 @@ void ResetGame() {
     spikes.clear();
     boxes.clear();
 
+    LoadLevelFromFile("level.txt");
     LoadLevel();
+
 
     // Reset game state
 
@@ -257,7 +266,9 @@ int main() {
     InitWindow(screenWidth, screenHeight, "Geometry Dash v2");
     SetTargetFPS(60);
     
+    LoadLevelFromFile("level.txt");
     LoadLevel();
+
 
     camera.target = {p1.pos.x + screenWidth/4, screenHeight/2.0f};
     camera.offset = {screenWidth/2.0f, screenHeight/2.0f};
