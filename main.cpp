@@ -307,13 +307,7 @@ int main() {
     playerTexture = LoadTexture("assets/player.png");
     boxTexture = LoadTexture("assets/box.png");
     spikeTexture = LoadTexture("assets/spike.png");
-    Image img = LoadImage("assets/background.png");
-    ImageFormat(&img, PIXELFORMAT_UNCOMPRESSED_R8G8B8A8); // Force it to RGBA
-    Texture2D backgroundTexture = LoadTextureFromImage(img);
-    UnloadImage(img);
-
-
-    SetTextureWrap(backgroundTexture, TEXTURE_WRAP_REPEAT);
+    backgroundTexture = LoadTexture("assets/background.png");
 
     LoadLevelFromFile("level.txt");
     LoadLevel();
@@ -329,8 +323,15 @@ int main() {
 
         Rectangle src = {p1.pos.x * 0.8f, 0, (float)screenWidth, (float)screenHeight};
         Rectangle dst = {0, 0, (float)screenWidth, (float)screenHeight};
-        DrawTexturePro(backgroundTexture, src, dst, {0,0}, 0.0f, WHITE);
-        DrawTextureEx(backgroundTexture, {0, 0}, 0.0f, 1280.0f / backgroundTexture.width, WHITE);
+        float scrollX = fmodf(p1.pos.x * 0.8f, backgroundTexture.width);
+        if (scrollX < 0) scrollX += backgroundTexture.width; // ensure positive offset
+
+        for (int x = -scrollX; x < screenWidth; x += backgroundTexture.width) {
+            for (int y = 0; y < screenHeight; y += backgroundTexture.height) {
+                DrawTexture(backgroundTexture, x, y, WHITE);
+            }
+        }
+
 
 
         DrawRectangleGradientV(
