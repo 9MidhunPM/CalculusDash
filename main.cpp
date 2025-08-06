@@ -10,8 +10,28 @@
 Texture2D playerTexture;
 Texture2D floorTexture;
 Texture2D backgroundTexture;
+Texture2D boxTexture;
+Texture2D spikeTexture;
+
+//COLORSS ONLY CHANGE IF U KNOW WHAT UR DOING
+Color spikeTint        = { 255, 0, 170, 240 };   // Hot pink
+Color boxTint          = { 0, 255, 255, 240 };   // Neon cyan
+Color floorUpTint      = { 255, 100, 180, 200 }; // Fuchsia pink
+Color floorDownTint    = { 50, 170, 255, 200 };  // Bright blue
+Color playerUpTint     = { 255, 200, 50, 255 };  // Glowing gold
+Color playerDownTint   = { 80, 250, 180, 255 };  // Mint green
+Color bgUpTint         = { 90, 0, 90, 150 };     // Deep purple haze
+Color bgDownTint       = { 0, 30, 60, 150 };     // Midnight blue
+Color particleUpTint   = { 255, 0, 0, 255 };     // Red sparks
+Color particleDownTint = { 0, 255, 255, 255 };   // Aqua sparks
+
+
 
 //Constants i suppose
+
+bool wasGroundedLastFrame = true;
+float shakeDuration = 0.0f;
+const float shakeMagnitude = 2.0f;
 const float gravity = 0.8f;
 const float jumpForce = 12.0f;
 const int groundY = 640;
@@ -25,12 +45,15 @@ const int TILE_SIZE = 40;
 
 const float scrollSpeed = 4.0f;
 
+Vector2 shakeOffset = { 0, 0 };
 
 std::vector<std::string> level;
 
-int levelRows = level.size();
-int levelCols = level.empty() ? 0 : level[0].size();
+//Dis is just initializin for the loadlevel func
+int levelRows;
+int levelCols;
 
+//Game states 
 enum GameState { START, PLAYING, GAMEOVER };
 GameState gameState = START;
 
@@ -82,10 +105,10 @@ public:
     }
 
     void Draw() {
-    Vector2 origin = { width / 2, height / 2 };
-    Vector2 center = { pos.x + width / 2, pos.y + height / 2 };
-    Color tint = (pos.y + height / 2 < GetScreenHeight() / 2) ? RED : BLUE;
-    DrawTexturePro(playerTexture,{0, 0, (float)playerTexture.width, (float)playerTexture.height},{ center.x, center.y, width, height }, origin, rotation, tint);
+        Vector2 origin = { width / 2, height / 2 };
+        Vector2 center = { pos.x + width / 2, pos.y + height / 2 };
+        Color tint = (pos.y + height / 2 < GetScreenHeight() / 2) ? playerDownTint : playerUpTint;
+        DrawTexturePro(playerTexture,{0, 0, (float)playerTexture.width, (float)playerTexture.height},{ center.x, center.y, width, height }, origin, rotation, tint);
     }
 
 
@@ -109,7 +132,10 @@ public:
     }
 
     void Draw() {
-        DrawRectangleV(pos, { size,size }, RED);
+        Rectangle src = {0, 0, (float)spikeTexture.width, (float)spikeTexture.height};
+        Rectangle dst = GetRect();
+        if (dst.y < screenHeight / 2) src.height = -src.height;
+        DrawTexturePro(spikeTexture, src, dst, {0,0}, 0, spikeTint);
     }
 
     Rectangle GetRect(){
@@ -125,7 +151,10 @@ public:
     }
 
     void Draw() {
-        DrawRectangleRec(rect, BROWN);
+        Rectangle src = {0, 0, (float)boxTexture.width, (float)boxTexture.height};
+        Rectangle dst = GetRect();
+        if (dst.y < screenHeight / 2) src.height = -src.height;
+        DrawTexturePro(boxTexture, src, dst, {0, 0}, 0, boxTint);
     }
 
     Rectangle GetRect() {
@@ -154,7 +183,7 @@ public:
     void Update() {
         position.x += velocity.x;
         position.y += velocity.y;
-        lifetime -= 0.5f/60.0f; // Assuming 60 FPS
+        lifetime -= 2.0f/60.0f; // Assuming 60 FPS
     }
 
     void Draw() {
@@ -244,7 +273,8 @@ void UpdateParticles() {
             float size = 1.0f + (rand() % 3);
             float lifetime = 0.5f + (rand() % 100) / 100.0f;
             
-            Color particleColor = p1.gravityDirection == 1 ? BLUE : RED;
+            Color CYAN = { 0, 255, 255, 255 };
+            Color particleColor = p1.gravityDirection == 1 ? particleDownTint : particleUpTint;
             particles.push_back(Particle(emitPos, vel, size, lifetime, particleColor));
         }
     }
@@ -275,6 +305,9 @@ int main() {
     floorTexture = LoadTexture("assets/floor.png");
     playerTexture = LoadTexture("assets/player.png");
     backgroundTexture = LoadTexture("assets/background.png");
+    boxTexture = LoadTexture("assets/box.png");
+    spikeTexture = LoadTexture("assets/spike.png");
+
     SetTextureWrap(backgroundTexture, TEXTURE_WRAP_REPEAT);
 
     LoadLevelFromFile("level.txt");
@@ -296,8 +329,8 @@ int main() {
         DrawRectangleGradientV(
             0, 0,
             screenWidth, screenHeight,
-            Fade(RED, 0.4f),   // Top tint
-            Fade(BLUE, 0.4f)     // Bottom tint
+            Fade(bgUpTint, 0.3f),   // Top tint
+            Fade(bgDownTint, 0.3)     // Bottom tint
         );
 
 
@@ -389,9 +422,26 @@ int main() {
                 }
             }
 
-            BeginMode2D(camera);
+            // Check for landing (was in air, now grounded)
+            if (!wasGroundedLastFrame && p1.isGrounded) {
+                shakeDuration = 0.2f; 
+            }
+            wasGroundedLastFrame = p1.isGrounded;
 
-             // Draw background color division
+            if (shakeDuration > 0) {
+                shakeOffset.x = (float)(GetRandomValue(-100, 100)) / 100.0f * shakeMagnitude;
+                shakeOffset.y = (float)(GetRandomValue(-100, 100)) / 100.0f * shakeMagnitude;
+                shakeDuration -= GetFrameTime();
+            } else {
+                shakeOffset = { 0, 0 };
+            }
+
+            Camera2D shakenCamera = camera;
+            shakenCamera.target.x += shakeOffset.x;
+            shakenCamera.target.y += shakeOffset.y;
+
+            BeginMode2D(shakenCamera);
+
             float worldY = screenHeight/2.0f;
             float worldLeft = camera.target.x - screenWidth;
             float worldRight = camera.target.x + screenWidth;
@@ -410,8 +460,8 @@ int main() {
 
             for (auto& g : groundTiles){
                 float centerY = g.y + g.height / 2;
-                Color redTint = { 255, 60, 60, 255 };
-                Color tint = (centerY < GetScreenHeight() / 2) ? RED : BLUE;
+
+                Color tint = (centerY < GetScreenHeight() / 2) ? floorDownTint : floorUpTint;
                 DrawTexturePro(floorTexture,{ 0, 0, (float)floorTexture.width, (float)floorTexture.height },g,{ 0, 0 },0.0f,tint);
             }
             for (auto& b : boxes) b.Draw();
@@ -435,6 +485,9 @@ int main() {
     //UNLOAD DA TAXTURES
     UnloadTexture(playerTexture);
     UnloadTexture(floorTexture);
+    UnloadTexture(backgroundTexture);
+    UnloadTexture(boxTexture);
+    UnloadTexture(spikeTexture);
 
     CloseWindow();
     return 0;
