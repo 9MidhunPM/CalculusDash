@@ -335,12 +335,12 @@ int main() {
 
 
         if(gameState == START){
-            if(IsKeyPressed(KEY_ENTER)) gameState = PLAYING;
+            if(IsKeyPressed(KEY_ENTER) || IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) gameState = PLAYING;
             DrawText("Press Enter to Start", screenWidth / 2 - 150, screenHeight / 2, 30, GRAY);
         }
 
         else if(gameState == PLAYING){
-            if(IsKeyPressed(KEY_SPACE)) p1.Jump();
+            if(IsKeyPressed(KEY_SPACE) || IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) p1.Jump();
             
             p1.Update();
             p1.isGrounded = false;
@@ -475,7 +475,7 @@ int main() {
             DrawText("Press R to Restart", screenWidth / 2 - 160, screenHeight / 2 + 30, 25, DARKGRAY);
 
             //Reset game States
-            if (IsKeyPressed(KEY_R)) ResetGame();
+            if (IsKeyPressed(KEY_R) || IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) ResetGame();
 
         }   
 
