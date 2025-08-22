@@ -14,23 +14,38 @@ Texture2D backgroundTexture;
 Texture2D boxTexture;
 Texture2D spikeTexture;
 
-//COLORSS ONLY CHANGE IF U KNOW WHAT UR DOING
-Color spikeTint        = { 255, 0, 170, 240 };   // Hot pink
-Color boxTint          = { 0, 255, 255, 240 };   // Neon cyan
-Color floorUpTint      = { 255, 100, 180, 200 }; // Fuchsia pink
-Color floorDownTint    = { 50, 170, 255, 200 };  // Bright blue
-Color playerUpTint     = { 255, 200, 50, 255 };  // Glowing gold
-Color playerDownTint   = { 80, 250, 180, 255 };  // Mint green
-Color bgUpTint         = { 90, 0, 90, 150 };     // Deep purple haze
-Color bgDownTint       = { 0, 30, 60, 150 };     // Midnight blue
-Color particleUpTint   = { 255, 0, 0, 255 };     // Red sparks
-Color particleDownTint = { 0, 255, 255, 255 };   // Aqua sparks
-Color dustJumpTint   = { 210, 190, 160, 255 }; // sandy jump dust
-Color dustLandTint   = { 170, 170, 170, 255 }; // gray landing dust
-Color sparkUpTint    = { 255, 120, 30, 255 };  // warm orange sparks
-Color sparkDownTint  = {  60, 200, 255, 255 }; // cyan sparks (top half)
-Color trailTintUp    = { 255, 230, 120, 255 }; // warm trail (bottom half gravity)
-Color trailTintDown  = { 120, 255, 210, 255 }; // cool trail (top half gravity)
+// === COLOR SCHEME 2.0 ===
+// Spikes & Obstacles
+Color spikeTint        = { 255, 80, 140, 240 };  // Neon magenta (danger pop)
+Color boxTint          = { 80, 200, 255, 240 };  // Sky neon cyan
+
+// Floors
+Color floorUpTint      = { 255, 180, 80, 200 };  // Warm orange floor
+Color floorDownTint    = { 100, 220, 180, 200 }; // Teal-green floor
+
+// Player
+Color playerUpTint     = { 255, 255, 120, 255 }; // Bright gold (hero glow)
+Color playerDownTint   = { 150, 255, 200, 255 }; // Soft minty glow
+
+// Backgrounds
+Color bgUpTint         = { 120, 40, 200, 255 };    // Cosmic indigo haze
+Color bgDownTint       = { 40, 80, 200, 255 };    // Deep navy night
+
+// Particles (generic sparks)
+Color particleUpTint   = { 255, 120, 200, 255 }; // Pink sparks
+Color particleDownTint = { 120, 220, 255, 255 }; // Cyan sparks
+
+// Dust
+Color dustJumpTint     = { 230, 200, 150, 255 }; // Sandy beige dust
+Color dustLandTint     = { 190, 190, 190, 255 }; // Light gray dust
+
+// Extra sparks
+Color sparkUpTint      = { 255, 200, 100, 255 }; // Ember orange sparks
+Color sparkDownTint    = { 100, 180, 255, 255 }; // Electric blue sparks
+
+// Trail
+Color trailTintUp      = { 255, 150, 80, 220 };  // Warm neon orange trail
+Color trailTintDown    = { 100, 255, 200, 220 }; // Aqua-mint trail
 
 
 
@@ -44,6 +59,10 @@ const float gravity = 0.8f;
 const float jumpForce = 12.0f;
 const int groundY = 640;
 const int ceilingY = 80;
+const Vector2 restartPosition = { 400, groundY - 40 }; // Player start position
+const float scrollSpeed = 4.0f;
+
+Vector2 shakeOffset = { 0, 0 };
 
 //Screen dimensions
 
@@ -51,9 +70,6 @@ const int screenWidth = 1280;
 const int screenHeight =720;
 const int TILE_SIZE = 40;
 
-const float scrollSpeed = 4.0f;
-
-Vector2 shakeOffset = { 0, 0 };
 
 std::vector<std::string> level;
 
@@ -248,7 +264,7 @@ std::vector<Spike> spikes;
 std::vector<Box> boxes;
 std::vector<Vector2> trailPositions;
 
-Player p1(400, screenHeight - TILE_SIZE * 3 );
+Player p1(restartPosition.x, restartPosition.y);
 
 Camera2D camera = { 0 };
 
@@ -313,9 +329,12 @@ void UpdateParticles() {
 }
 
 void ResetGame() {
-    p1.pos = { 400, screenHeight - TILE_SIZE * 3 };
+    p1.pos = restartPosition;
     p1.velocityY = 0;
     p1.isGrounded = false;
+    p1.rotation = 0.0f;
+    p1.targetRotation = 0.0f;
+    p1.rotating = false;
 
     // Reset map
     groundTiles.clear();
@@ -404,18 +423,13 @@ int main() {
                 trailPositions.erase(trailPositions.begin());
             }
 
-            // Scroll world elements to the left
-            //for (auto& g : groundTiles) g.x -= scrollSpeed;
-            //for (auto& s : spikes) s.pos.x -= scrollSpeed;
-            //for (auto& b : boxes)  b.rect.x -= scrollSpeed;
-
             // Combined collision logic for ground and boxes
             std::vector<Rectangle> allRects = groundTiles;
             for (auto& b : boxes) allRects.push_back(b.GetRect());
 
             // Check for spike collision
             for (auto& s : spikes) {
-                float spikePadding = 5.0f; // increase for more forgiveness
+                float spikePadding = 5.0f; 
                 Rectangle spikeRect = s.GetRect();
                 spikeRect.x += spikePadding;
                 spikeRect.y += spikePadding;
