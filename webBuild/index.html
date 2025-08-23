@@ -39,6 +39,7 @@
         gap: 20px;
         padding: 20px;
         box-shadow: 0 0 30px rgba(0,0,0,0.8);
+        position: relative;
     }
 
     #game-area {
@@ -56,6 +57,40 @@
         image-rendering: pixelated;
         width: 100%;
         height: 100%;
+    }
+
+    #fullscreen-btn {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        padding: 10px 14px;
+        background: var(--accent);
+        color: #000;
+        font-size: 1rem;
+        font-family: 'Press Start 2P', cursive;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: 0.3s;
+        z-index: 100;
+    }
+
+    #fullscreen-btn:hover {
+        background: #e6b800;
+    }
+
+    #exit-btn {
+        position: absolute;
+        top: 50px;
+        right: 10px;
+        display: none;
+        background: #ff4444;
+        color: white;
+        padding: 10px 14px;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        z-index: 100;
     }
 
     #ui-panel {
@@ -82,29 +117,6 @@
         text-align: center;
     }
 
-    #fullscreen-btn, #exit-btn {
-        margin-top: 20px;
-        padding: 12px;
-        background: var(--accent);
-        color: #000;
-        font-size: 1.1rem;
-        font-family: 'Press Start 2P', cursive;
-        border: none;
-        border-radius: 8px;
-        cursor: pointer;
-        transition: 0.3s;
-    }
-
-    #fullscreen-btn:hover, #exit-btn:hover {
-        background: #e6b800;
-    }
-
-    #exit-btn {
-        display: none;
-        background: #ff4444;
-        color: white;
-    }
-
     .fullscreen-mode #ui-panel {
         display: none;
     }
@@ -124,16 +136,13 @@
         #game-area {
             width: 100%;
             height: 100%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
         }
 
         canvas {
             width: 100%;
             height: auto;
             max-height: 100%;
-            aspect-ratio: 16/9; /* keep game aspect ratio */
+            aspect-ratio: 16/9;
         }
 
         #ui-panel {
@@ -149,6 +158,8 @@
     <!-- GAME AREA -->
     <div id="game-area">
         <canvas id="canvas" oncontextmenu="event.preventDefault()"></canvas>
+        <button id="fullscreen-btn">Fullscreen</button>
+        <button id="exit-btn">Exit</button>
     </div>
 
     <!-- UI PANEL -->
@@ -159,24 +170,22 @@
             <p>Press <b>[F]</b> for Fullscreen</p>
             <p>Use [ESC] or Exit button to quit</p>
         </div>
-        <button id="fullscreen-btn">Go Fullscreen</button>
-        <button id="exit-btn">Exit Fullscreen</button>
     </div>
 </div>
 
 <!-- Emscripten Loader -->
 <script type="module">
-    import createModule from './index.js'; // make sure path matches your folder
+    import createModule from './webBuild/index.js'; // update path if needed
 
     const canvas = document.querySelector('#canvas');
     const fullscreenBtn = document.getElementById('fullscreen-btn');
     const exitBtn = document.getElementById('exit-btn');
     const wrapper = document.getElementById('wrapper');
 
-    // Emscripten loader with locateFile pointing to webBuild
+    // Emscripten loader
     createModule({
         canvas,
-        locateFile: (file) => `./${file}`
+        locateFile: (file) => `./webBuild/${file}`
     }).then(() => console.log("Geometry Dash Web Loaded."));
 
     function enterFullscreen() {
@@ -205,7 +214,6 @@
         if (e.code === 'Escape') exitFullscreen();
     });
 
-    // UI toggle based on fullscreen
     document.addEventListener('fullscreenchange', () => {
         if (document.fullscreenElement) {
             wrapper.classList.add('fullscreen-mode');
@@ -216,9 +224,8 @@
         }
     });
 
-    // Resize canvas to maintain aspect ratio on mobile
     function resizeCanvas() {
-        const aspectRatio = 16 / 9; // change if your game has a different ratio
+        const aspectRatio = 16 / 9;
         let width = window.innerWidth;
         let height = window.innerHeight;
 
