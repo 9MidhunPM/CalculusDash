@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>Geometry Dash Web</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -20,11 +20,12 @@
         padding: 0;
         background-color: var(--primary-bg);
         font-family: 'VT323', monospace;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
         display: flex;
         justify-content: center;
         align-items: center;
-        height: 100vh;
-        overflow: hidden;
     }
 
     #wrapper {
@@ -37,7 +38,7 @@
         grid-template-columns: 3fr 1fr;
         gap: 20px;
         padding: 20px;
-        box-shadow: 0 0 30px rgba(0, 0, 0, 0.8);
+        box-shadow: 0 0 30px rgba(0,0,0,0.8);
     }
 
     #game-area {
@@ -51,10 +52,10 @@
     }
 
     canvas {
+        background-color: #000;
+        image-rendering: pixelated;
         width: 100%;
         height: 100%;
-        image-rendering: pixelated;
-        background-color: #000;
     }
 
     #ui-panel {
@@ -104,95 +105,136 @@
         color: white;
     }
 
-    /* Fullscreen adjustments: hide side panel in fullscreen */
     .fullscreen-mode #ui-panel {
         display: none;
     }
 
-    /* Mobile adjustments */
+    /* Mobile / Landscape adjustments */
     @media (max-width: 768px) {
         #wrapper {
+            width: 100vw;
+            height: 100vh;
             grid-template-columns: 1fr;
-            grid-template-rows: auto auto;
-            height: auto;
-            width: 100%;
+            grid-template-rows: 1fr auto;
             border-radius: 0;
-            gap: 10px;
+            gap: 5px;
+            padding: 0;
         }
+
         #game-area {
-            height: 50vh;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        canvas {
+            width: 100%;
+            height: auto;
+            max-height: 100%;
+            aspect-ratio: 16/9; /* keep game aspect ratio */
+        }
+
+        #ui-panel {
+            height: auto;
+            padding: 5px;
+            text-align: center;
         }
     }
 </style>
 </head>
 <body>
-    <div id="wrapper">
-        <!-- GAME AREA -->
-        <div id="game-area">
-            <canvas id="canvas" oncontextmenu="event.preventDefault()"></canvas>
-        </div>
-
-        <!-- UI PANEL -->
-        <div id="ui-panel">
-            <h2>Geometry Dash Web</h2>
-            <div class="instructions">
-                <p>Click or Tap to Jump!</p>
-                <p>Press <b>[F]</b> for Fullscreen</p>
-                <p>Use [ESC] or Exit button to quit</p>
-            </div>
-            <button id="fullscreen-btn">Go Fullscreen</button>
-            <button id="exit-btn">Exit Fullscreen</button>
-        </div>
+<div id="wrapper">
+    <!-- GAME AREA -->
+    <div id="game-area">
+        <canvas id="canvas" oncontextmenu="event.preventDefault()"></canvas>
     </div>
 
-    <!-- Emscripten Loader -->
-    <script type="module">
-        import createModule from './index.js';
+    <!-- UI PANEL -->
+    <div id="ui-panel">
+        <h2>Geometry Dash Web</h2>
+        <div class="instructions">
+            <p>Click or Tap to Jump!</p>
+            <p>Press <b>[F]</b> for Fullscreen</p>
+            <p>Use [ESC] or Exit button to quit</p>
+        </div>
+        <button id="fullscreen-btn">Go Fullscreen</button>
+        <button id="exit-btn">Exit Fullscreen</button>
+    </div>
+</div>
 
-        const canvas = document.querySelector('#canvas');
-        const fullscreenBtn = document.getElementById('fullscreen-btn');
-        const exitBtn = document.getElementById('exit-btn');
-        const wrapper = document.getElementById('wrapper');
+<!-- Emscripten Loader -->
+<script type="module">
+    import createModule from './index.js'; // make sure path matches your folder
 
-        createModule({ canvas }).then(() => console.log("Geometry Dash Web Loaded."));
+    const canvas = document.querySelector('#canvas');
+    const fullscreenBtn = document.getElementById('fullscreen-btn');
+    const exitBtn = document.getElementById('exit-btn');
+    const wrapper = document.getElementById('wrapper');
 
-        function enterFullscreen() {
-            if (canvas.requestFullscreen) {
-                canvas.requestFullscreen();
-            } else if (canvas.webkitRequestFullscreen) {
-                canvas.webkitRequestFullscreen();
-            } else if (canvas.msRequestFullscreen) {
-                canvas.msRequestFullscreen();
-            }
+    // Emscripten loader with locateFile pointing to webBuild
+    createModule({
+        canvas,
+        locateFile: (file) => `./${file}`
+    }).then(() => console.log("Geometry Dash Web Loaded."));
+
+    function enterFullscreen() {
+        if (canvas.requestFullscreen) {
+            canvas.requestFullscreen();
+        } else if (canvas.webkitRequestFullscreen) {
+            canvas.webkitRequestFullscreen();
+        } else if (canvas.msRequestFullscreen) {
+            canvas.msRequestFullscreen();
+        } else if (document.documentElement.requestFullscreen) {
+            document.documentElement.requestFullscreen();
+        }
+    }
+
+    function exitFullscreen() {
+        if (document.fullscreenElement) {
+            document.exitFullscreen();
+        }
+    }
+
+    fullscreenBtn.addEventListener('click', enterFullscreen);
+    exitBtn.addEventListener('click', exitFullscreen);
+
+    window.addEventListener('keydown', (e) => {
+        if (e.code === 'KeyF') enterFullscreen();
+        if (e.code === 'Escape') exitFullscreen();
+    });
+
+    // UI toggle based on fullscreen
+    document.addEventListener('fullscreenchange', () => {
+        if (document.fullscreenElement) {
+            wrapper.classList.add('fullscreen-mode');
+            exitBtn.style.display = 'block';
+        } else {
+            wrapper.classList.remove('fullscreen-mode');
+            exitBtn.style.display = 'none';
+        }
+    });
+
+    // Resize canvas to maintain aspect ratio on mobile
+    function resizeCanvas() {
+        const aspectRatio = 16 / 9; // change if your game has a different ratio
+        let width = window.innerWidth;
+        let height = window.innerHeight;
+
+        if (width / height > aspectRatio) {
+            width = height * aspectRatio;
+        } else {
+            height = width / aspectRatio;
         }
 
-        function exitFullscreen() {
-            if (document.fullscreenElement) {
-                document.exitFullscreen();
-            }
-        }
+        canvas.style.width = width + 'px';
+        canvas.style.height = height + 'px';
+    }
 
-        fullscreenBtn.addEventListener('click', () => {
-            if (!document.fullscreenElement) enterFullscreen();
-        });
-
-        exitBtn.addEventListener('click', exitFullscreen);
-
-        window.addEventListener('keydown', (e) => {
-            if (e.code === 'KeyF') enterFullscreen();
-            if (e.code === 'Escape') exitFullscreen();
-        });
-
-        // Toggle UI based on fullscreen state
-        document.addEventListener('fullscreenchange', () => {
-            if (document.fullscreenElement) {
-                wrapper.classList.add('fullscreen-mode');
-                exitBtn.style.display = 'block';
-            } else {
-                wrapper.classList.remove('fullscreen-mode');
-                exitBtn.style.display = 'none';
-            }
-        });
-    </script>
+    window.addEventListener('resize', resizeCanvas);
+    window.addEventListener('orientationchange', resizeCanvas);
+    resizeCanvas();
+</script>
 </body>
 </html>
