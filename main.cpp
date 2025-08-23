@@ -54,6 +54,8 @@ Color trailTintDown    = { 100, 255, 200, 220 }; // Aqua-mint trail
 
 bool wasGroundedLastFrame = true;
 float shakeDuration = 0.0f;
+float gameOverTimer = 0.0f;
+const float gameOverDelay = 2.0f; 
 const float shakeMagnitude = 2.0f;
 const float gravity = 0.8f;
 const float jumpForce = 12.0f;
@@ -257,12 +259,27 @@ public:
     }
 };
 
+struct MapText {
+    std::string text;
+    Vector2 pos;   // world position
+    int fontSize;
+    Color color;
+};
 
 
 std::vector<Rectangle> groundTiles;
 std::vector<Spike> spikes;
 std::vector<Box> boxes;
 std::vector<Vector2> trailPositions;
+std::vector<MapText> mapTexts = {
+    {"Press SPACE or CLICK to jump", {400, 400}, 20, WHITE},
+    {"Hit a Spike?... Well", {1400, 500}, 20, RED},
+    {"Also Gravity is Flipped past About here", {2000, screenHeight/2}, 20, YELLOW},
+    {"Maybe Jumping isnt always for the Best", {5555, 300}, 20, RED},
+    {"FLIP TIMEEE!", {6300, screenHeight/2}, 20, YELLOW},
+    {"Seems Simple? Good luck!", {7000, 500}, 20, RED},
+    {"Hands Hurt Yet??", {9000, 400}, 20, WHITE},
+};
 
 Player p1(restartPosition.x, restartPosition.y);
 
@@ -328,6 +345,31 @@ void UpdateParticles() {
     }
 }
 
+void DrawMapTexts() {
+    for (auto& mt : mapTexts) {
+        DrawText(mt.text.c_str(), (int)mt.pos.x, (int)mt.pos.y, mt.fontSize, mt.color);
+    }
+}
+
+
+void DrawWorld(){
+    float scrollX = fmodf(p1.pos.x * 0.8f, backgroundTexture.width);
+    if (scrollX < 0) scrollX += backgroundTexture.width; // ensure positive offset
+
+    for (int x = -scrollX; x < screenWidth; x += backgroundTexture.width) {
+        for (int y = 0; y < screenHeight; y += backgroundTexture.height) {
+            DrawTexture(backgroundTexture, x, y, WHITE);
+        }
+    }
+
+    DrawRectangleGradientV(
+        0, 0,
+        screenWidth, screenHeight,
+        Fade(bgUpTint, 0.3f),   // Top tint
+        Fade(bgDownTint, 0.3)     // Bottom tint
+    );    
+}
+
 void ResetGame() {
     p1.pos = restartPosition;
     p1.velocityY = 0;
@@ -353,6 +395,103 @@ void ResetGame() {
     gameState = START;
 }
 
+void DrawStartScreen() {
+    // background
+    ClearBackground((Color){20, 20, 30, 255}); // dark navy backdrop
+    
+    // Title
+    const char* title = "CALCULUS DASH";
+    int fontSize = 80;
+    int titleWidth = MeasureText(title, fontSize);
+    DrawText(title, screenWidth/2 - titleWidth/2, screenHeight/4, fontSize, RAYWHITE);
+
+    // Subtitle
+    const char* subtitle = "Press ENTER / CLICK to Play";
+    int subSize = 30;
+    int subWidth = MeasureText(subtitle, subSize);
+    DrawText(subtitle, screenWidth/2 - subWidth/2, screenHeight/2, subSize, GRAY);
+}
+
+void UpdateStartScreen() {
+    if (IsKeyPressed(KEY_ENTER) || IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+        gameState = PLAYING;
+    }
+}
+
+void DrawGameOverScreen() {
+        if (gameOverTimer < gameOverDelay) {
+        BeginMode2D(camera);
+
+        // draw ground
+        for (auto& g : groundTiles) {
+            float centerY = g.y + g.height / 2;
+            Color tint = (centerY < GetScreenHeight() / 2) ? floorDownTint : floorUpTint;
+            DrawTexturePro(floorTexture, {0,0,(float)floorTexture.width,(float)floorTexture.height}, g, {0,0}, 0.0f, tint);
+        }
+        for (auto& b : boxes)  b.Draw();
+        for (auto& s : spikes) s.Draw();
+
+        // particles (frozen in place)
+        for (const auto& particle : particles) if (!particle.additive) particle.Draw();
+        BeginBlendMode(BLEND_ADDITIVE);
+        for (const auto& particle : particles) if (particle.additive) particle.Draw();
+        EndBlendMode();
+
+        // Flashing player
+        float flash = sinf(GetTime() * 20); // quick blink
+        if (flash > 0) p1.Draw();
+
+        EndMode2D();
+
+    } 
+    else{
+    // background (dark red gradient)
+        DrawRectangleGradientV(0, 0, screenWidth, screenHeight,
+            (Color){50, 0, 0, 255},   // deep red top
+            (Color){10, 0, 0, 255});  // almost black bottom
+
+        // --- Pulsing GAME OVER text ---
+        const char* title = "GAME OVER!";
+        int fontSize = 80;
+
+        float scale = 1.0f + 0.05f * sinf(GetTime() * 3.0f); // pulsing effect
+        int baseWidth = MeasureText(title, fontSize);
+        int scaledWidth = (int)(baseWidth * scale);
+
+        DrawText(title,
+            screenWidth/2 - scaledWidth/2,
+            screenHeight/3,
+            (int)(fontSize * scale),
+            RED);
+
+        // --- Options below ---
+        const char* retryText = "[R] Click To Retry";
+
+        int retryWidth = MeasureText(retryText, 30);
+
+        DrawText(retryText,
+            screenWidth/2 - retryWidth/2,
+            screenHeight/2 + 100,
+            30, GRAY);
+        }
+    }
+
+void UpdateGameOverScreen() {
+    gameOverTimer += GetFrameTime();
+
+    if(gameOverTimer < gameOverDelay) {
+        gameOverTimer += GetFrameTime();
+        return; // don't allow restart yet
+    }
+
+    if (IsKeyPressed(KEY_R)|| IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+        ResetGame();
+        gameState = PLAYING;   // back to start menu
+    }
+}
+
+
+
 int main() {
     InitWindow(screenWidth, screenHeight, "Geometry Dash v2");
     SetTargetFPS(60);
@@ -374,33 +513,20 @@ int main() {
     while (!WindowShouldClose()) {
         BeginDrawing();
         ClearBackground(BLACK);
-        
-        float scrollX = fmodf(p1.pos.x * 0.8f, backgroundTexture.width);
-        if (scrollX < 0) scrollX += backgroundTexture.width; // ensure positive offset
-
-        for (int x = -scrollX; x < screenWidth; x += backgroundTexture.width) {
-            for (int y = 0; y < screenHeight; y += backgroundTexture.height) {
-                DrawTexture(backgroundTexture, x, y, WHITE);
-            }
-        }
-
-
-
-        DrawRectangleGradientV(
-            0, 0,
-            screenWidth, screenHeight,
-            Fade(bgUpTint, 0.3f),   // Top tint
-            Fade(bgDownTint, 0.3)     // Bottom tint
-        );
-
 
         if(gameState == START){
-            if(IsKeyPressed(KEY_ENTER) || IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) gameState = PLAYING;
-            DrawText("Press Enter to Start", screenWidth / 2 - 150, screenHeight / 2, 30, GRAY);
+            DrawStartScreen();
+            UpdateStartScreen();
         }
 
         else if(gameState == PLAYING){
             if(IsKeyPressed(KEY_SPACE) || IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) p1.Jump();
+            
+            //DEVELOPMENT CHEATS MAKE SURE TO DELETE LATER U CHILD DONT U DARE FORGET MIDHUN
+            if(IsKeyPressed(KEY_O)) (p1.gravityDirection == 1) ? p1.pos.y -= 300 : p1.pos.y += 300; // debug gravity flip
+            if(IsKeyPressed(KEY_P)) p1.pos.x += 300; // debug forward
+            
+            DrawWorld();
             
             p1.Update();
             p1.isGrounded = false;
@@ -438,6 +564,7 @@ int main() {
 
                 if (CheckCollisionRecs(p1.GetRect(), spikeRect)) {
                     gameState = GAMEOVER;
+                    gameOverTimer = 0.0f;
                 }
             }
 
@@ -558,7 +685,7 @@ int main() {
                 DrawCircleV(trailPositions[i], radius, col);
             }
 
-
+            DrawMapTexts();
 
             // 1) Draw ground first (background)
             for (auto& g : groundTiles) {
@@ -591,12 +718,8 @@ int main() {
         }
 
         else if (gameState == GAMEOVER){
-            DrawText("Game Over",screenWidth / 2 - 100, screenHeight / 2 - 30, 40, RED);
-            DrawText("Press R to Restart", screenWidth / 2 - 160, screenHeight / 2 + 30, 25, DARKGRAY);
-
-            //Reset game States
-            if (IsKeyPressed(KEY_R) || IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) ResetGame();
-
+            DrawGameOverScreen();
+            UpdateGameOverScreen();
         }   
 
         EndDrawing();
