@@ -175,7 +175,7 @@
 
 <!-- Emscripten Loader -->
 <script type="module">
-    import createModule from './webBuild/index.js'; // update path if needed
+    import createModule from './index.js'; // update path if needed
 
     const canvas = document.querySelector('#canvas');
     const fullscreenBtn = document.getElementById('fullscreen-btn');
@@ -185,7 +185,7 @@
     // Emscripten loader
     createModule({
         canvas,
-        locateFile: (file) => `./webBuild/${file}`
+        locateFile: (file) => `./${file}`
     }).then(() => console.log("Geometry Dash Web Loaded."));
 
     function enterFullscreen() {
