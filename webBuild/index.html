@@ -59,6 +59,7 @@
         height: 100%;
     }
 
+    /* Fullscreen button for all devices */
     #fullscreen-btn {
         position: absolute;
         top: 10px;
@@ -175,14 +176,13 @@
 
 <!-- Emscripten Loader -->
 <script type="module">
-    import createModule from './index.js'; // update path if needed
+    import createModule from './index.js'; // paths unchanged
 
     const canvas = document.querySelector('#canvas');
     const fullscreenBtn = document.getElementById('fullscreen-btn');
     const exitBtn = document.getElementById('exit-btn');
     const wrapper = document.getElementById('wrapper');
 
-    // Emscripten loader
     createModule({
         canvas,
         locateFile: (file) => `./${file}`
