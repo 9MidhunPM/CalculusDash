@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Geometry Dash Web</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+<style>
+    :root {
+        --primary-bg: #0f0f0f;
+        --accent: #ffcc00;
+        --panel-bg: #1e1e1e;
+        --text-color: #ccc;
+    }
+
+    html, body {
+        margin: 0;
+        padding: 0;
+        background-color: var(--primary-bg);
+        font-family: 'VT323', monospace;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        overflow: hidden;
+    }
+
+    #wrapper {
+        width: 95vw;
+        max-width: 1400px;
+        height: 90vh;
+        background: var(--panel-bg);
+        border-radius: 20px;
+        display: grid;
+        grid-template-columns: 3fr 1fr;
+        gap: 20px;
+        padding: 20px;
+        box-shadow: 0 0 30px rgba(0, 0, 0, 0.8);
+    }
+
+    #game-area {
+        background: black;
+        border-radius: 12px;
+        position: relative;
+        overflow: hidden;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    canvas {
+        width: 100%;
+        height: 100%;
+        image-rendering: pixelated;
+        background-color: #000;
+    }
+
+    #ui-panel {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        padding: 10px;
+        color: var(--text-color);
+    }
+
+    #ui-panel h2 {
+        font-family: 'Press Start 2P', cursive;
+        color: var(--accent);
+        text-align: center;
+        font-size: 1.2rem;
+    }
+
+    .instructions {
+        font-size: 1.1rem;
+        line-height: 1.6rem;
+        background: #111;
+        padding: 12px;
+        border-radius: 8px;
+        text-align: center;
+    }
+
+    #fullscreen-btn, #exit-btn {
+        margin-top: 20px;
+        padding: 12px;
+        background: var(--accent);
+        color: #000;
+        font-size: 1.1rem;
+        font-family: 'Press Start 2P', cursive;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: 0.3s;
+    }
+
+    #fullscreen-btn:hover, #exit-btn:hover {
+        background: #e6b800;
+    }
+
+    #exit-btn {
+        display: none;
+        background: #ff4444;
+        color: white;
+    }
+
+    /* Fullscreen adjustments: hide side panel in fullscreen */
+    .fullscreen-mode #ui-panel {
+        display: none;
+    }
+
+    /* Mobile adjustments */
+    @media (max-width: 768px) {
+        #wrapper {
+            grid-template-columns: 1fr;
+            grid-template-rows: auto auto;
+            height: auto;
+            width: 100%;
+            border-radius: 0;
+            gap: 10px;
+        }
+        #game-area {
+            height: 50vh;
+        }
+    }
+</style>
+</head>
+<body>
+    <div id="wrapper">
+        <!-- GAME AREA -->
+        <div id="game-area">
+            <canvas id="canvas" oncontextmenu="event.preventDefault()"></canvas>
+        </div>
+
+        <!-- UI PANEL -->
+        <div id="ui-panel">
+            <h2>Geometry Dash Web</h2>
+            <div class="instructions">
+                <p>Click or Tap to Jump!</p>
+                <p>Press <b>[F]</b> for Fullscreen</p>
+                <p>Use [ESC] or Exit button to quit</p>
+            </div>
+            <button id="fullscreen-btn">Go Fullscreen</button>
+            <button id="exit-btn">Exit Fullscreen</button>
+        </div>
+    </div>
+
+    <!-- Emscripten Loader -->
+    <script type="module">
+        import createModule from './index.js';
+
+        const canvas = document.querySelector('#canvas');
+        const fullscreenBtn = document.getElementById('fullscreen-btn');
+        const exitBtn = document.getElementById('exit-btn');
+        const wrapper = document.getElementById('wrapper');
+
+        createModule({ canvas }).then(() => console.log("Geometry Dash Web Loaded."));
+
+        function enterFullscreen() {
+            if (canvas.requestFullscreen) {
+                canvas.requestFullscreen();
+            } else if (canvas.webkitRequestFullscreen) {
+                canvas.webkitRequestFullscreen();
+            } else if (canvas.msRequestFullscreen) {
+                canvas.msRequestFullscreen();
+            }
+        }
+
+        function exitFullscreen() {
+            if (document.fullscreenElement) {
+                document.exitFullscreen();
+            }
+        }
+
+        fullscreenBtn.addEventListener('click', () => {
+            if (!document.fullscreenElement) enterFullscreen();
+        });
+
+        exitBtn.addEventListener('click', exitFullscreen);
+
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'KeyF') enterFullscreen();
+            if (e.code === 'Escape') exitFullscreen();
+        });
+
+        // Toggle UI based on fullscreen state
+        document.addEventListener('fullscreenchange', () => {
+            if (document.fullscreenElement) {
+                wrapper.classList.add('fullscreen-mode');
+                exitBtn.style.display = 'block';
+            } else {
+                wrapper.classList.remove('fullscreen-mode');
+                exitBtn.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>
