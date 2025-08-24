@@ -40,29 +40,29 @@ cd CaclulusDash
 ### 2. Compile for Desktop  
 Make sure Raylib is installed. Then:  
 ```bash
-g++ main.cpp -o CalculusDash -lraylib -std=c++17
-./CalculusDash
+g++ main.cpp -IC:/raylib/include -LC:/raylib/lib -lraylib -lopengl32 -lgdi32 -lwinmm -o main.exe; if ($?) { ./main.exe }
 ```
 ### 3. Compile for Web  
 You need Emscripten installed and activated:  
 ```bash
-emcc main.cpp -o index.html -s USE_GLFW=3 -s FULL_ES3=1 -O3
+./build_web.ps1
 ```
 ## 🎯 Gameplay  
 - **Goal:** Jump over spikes, survive as long as possible.  
 - **Controls:**  
-    - **Space / Up Arrow** → Jump  
+    - **Space / Left Click** → Jump  
     - (Maybe rage quit after 5 minutes)  
 
 ---
 
 ## 🏗 Project Structure  
-CalculusDash/
-│── main.cpp
-│── assets/
-│── webBuild/
-│ └── index.html
-└── README.md
+
+- CalculusDash/
+- │── main.cpp
+- │── assets/
+- │── webBuild/
+- │ └── index.html
+- └── README.md
 
 
 ---
