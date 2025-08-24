@@ -14,7 +14,7 @@ Texture2D backgroundTexture;
 Texture2D boxTexture;
 Texture2D spikeTexture;
 
-// === COLOR SCHEME 2.0 ===
+// === COLOR SCHEME ===
 // Spikes & Obstacles
 Color spikeTint        = { 255, 80, 140, 240 };  // Neon magenta (danger pop)
 Color boxTint          = { 80, 200, 255, 240 };  // Sky neon cyan
@@ -61,13 +61,12 @@ const float gravity = 0.8f;
 const float jumpForce = 12.0f;
 const int groundY = 640;
 const int ceilingY = 80;
-const Vector2 restartPosition = { 400, groundY - 40 }; // Player start position
+const Vector2 restartPosition = { 400, groundY - 40 };
 const float scrollSpeed = 4.0f;
 
 Vector2 shakeOffset = { 0, 0 };
 
 //Screen dimensions
-
 const int screenWidth = 1280;
 const int screenHeight =720;
 const int TILE_SIZE = 40;
@@ -91,7 +90,7 @@ public:
     float lifetime;     // remaining
     float maxLifetime;  // initial
     Color color;
-    bool additive;      // draw in additive pass?
+    bool additive; 
 
     Particle(Vector2 pos, Vector2 vel, float s, float life, Color col, bool add = false)
         : position(pos), velocity(vel), size(s), lifetime(life), maxLifetime(life), color(col), additive(add) {}
@@ -103,12 +102,12 @@ public:
     }
 
     void Draw() const {
-        float t = (maxLifetime > 0.0f) ? (lifetime / maxLifetime) : 0.0f; // 1 -> 0
+        float t = (maxLifetime > 0.0f) ? (lifetime / maxLifetime) : 0.0f;
         if (t < 0.0f) t = 0.0f; 
         if (t > 1.0f) t = 1.0f;
         Color c = color;
-        c.a = (unsigned char)(color.a * t);   // fade out
-        float r = size * (0.5f + 0.5f * t);   // shrink slightly
+        c.a = (unsigned char)(color.a * t);  
+        float r = size * (0.5f + 0.5f * t); 
         DrawCircleV(position, r, c);
     }
 
@@ -166,12 +165,10 @@ public:
             rotating = true;
             isGrounded = false;
 
-            // --- Emit jump dust + a few bright sparks from the foot ---
             Vector2 foot = { pos.x + width * 0.5f, (gravityDirection == 1) ? (pos.y + height) : pos.y };
 
-            // Dust (normal blending)
             for (int i = 0; i < 12; ++i) {
-                float baseDeg   = (gravityDirection == 1) ? -90.0f : 90.0f;   // away from floor
+                float baseDeg   = (gravityDirection == 1) ? -90.0f : 90.0f;
                 float spreadDeg = (float)GetRandomValue(-70, 70);
                 float ang       = (baseDeg + spreadDeg) * DEG2RAD;
                 float speed     = 140.0f + (float)GetRandomValue(0, 70);
@@ -182,7 +179,6 @@ public:
                 particles.push_back(Particle(foot, vel, sz, life, dustJumpTint, false));
             }
 
-            // A few sparks (additive)
             Color sparkTint = (gravityDirection == 1) ? sparkUpTint : sparkDownTint;
             for (int i = 0; i < 5; ++i) {
                 float baseDeg   = (gravityDirection == 1) ? -90.0f : 90.0f;
@@ -261,7 +257,7 @@ public:
 
 struct MapText {
     std::string text;
-    Vector2 pos;   // world position
+    Vector2 pos;
     int fontSize;
     Color color;
 };
@@ -295,14 +291,12 @@ void LoadLevelFromFile(const char* filename) {
 
     char buffer[1024];
     while (fgets(buffer, sizeof(buffer), file)) {
-        // Remove trailing newline
         buffer[strcspn(buffer, "\n")] = '\0';
         level.push_back(std::string(buffer));
     }
 
     fclose(file);
 
-    // Update level dimensions
     levelRows = level.size();
     levelCols = level.empty() ? 0 : level[0].size();
 
@@ -330,7 +324,6 @@ void LoadLevel() {
 }
 
 void UpdateParticles() {
-    // Update & cull
     for (int i = (int)particles.size() - 1; i >= 0; --i) {
         particles[i].Update(GetFrameTime());
         if (particles[i].IsDead()) {
@@ -338,7 +331,6 @@ void UpdateParticles() {
         }
     }
 
-    // (optional) hard cap to avoid runaway allocations
     const size_t MAX_PARTICLES = 400;
     if (particles.size() > MAX_PARTICLES) {
         particles.erase(particles.begin(), particles.begin() + (particles.size() - MAX_PARTICLES));
@@ -354,7 +346,7 @@ void DrawMapTexts() {
 
 void DrawWorld(){
     float scrollX = fmodf(p1.pos.x * 0.8f, backgroundTexture.width);
-    if (scrollX < 0) scrollX += backgroundTexture.width; // ensure positive offset
+    if (scrollX < 0) scrollX += backgroundTexture.width; 
 
     for (int x = -scrollX; x < screenWidth; x += backgroundTexture.width) {
         for (int y = 0; y < screenHeight; y += backgroundTexture.height) {
@@ -365,8 +357,8 @@ void DrawWorld(){
     DrawRectangleGradientV(
         0, 0,
         screenWidth, screenHeight,
-        Fade(bgUpTint, 0.3f),   // Top tint
-        Fade(bgDownTint, 0.3)     // Bottom tint
+        Fade(bgUpTint, 0.3f),   
+        Fade(bgDownTint, 0.3)  
     );    
 }
 
@@ -378,34 +370,26 @@ void ResetGame() {
     p1.targetRotation = 0.0f;
     p1.rotating = false;
 
-    // Reset map
     groundTiles.clear();
     spikes.clear();
     boxes.clear();
     particles.clear();
     trailPositions.clear();
 
-
     LoadLevelFromFile("level.txt");
     LoadLevel();
-
-
-    // Reset game state
 
     gameState = START;
 }
 
 void DrawStartScreen() {
-    // background
-    ClearBackground((Color){20, 20, 30, 255}); // dark navy backdrop
+    ClearBackground((Color){20, 20, 30, 255});
     
-    // Title
     const char* title = "CALCULUS DASH";
     int fontSize = 80;
     int titleWidth = MeasureText(title, fontSize);
     DrawText(title, screenWidth/2 - titleWidth/2, screenHeight/4, fontSize, RAYWHITE);
 
-    // Subtitle
     const char* subtitle = "Press ENTER / CLICK to Play";
     int subSize = 30;
     int subWidth = MeasureText(subtitle, subSize);
@@ -422,7 +406,6 @@ void DrawGameOverScreen() {
         if (gameOverTimer < gameOverDelay) {
         BeginMode2D(camera);
 
-        // draw ground
         for (auto& g : groundTiles) {
             float centerY = g.y + g.height / 2;
             Color tint = (centerY < GetScreenHeight() / 2) ? floorDownTint : floorUpTint;
@@ -431,30 +414,27 @@ void DrawGameOverScreen() {
         for (auto& b : boxes)  b.Draw();
         for (auto& s : spikes) s.Draw();
 
-        // particles (frozen in place)
         for (const auto& particle : particles) if (!particle.additive) particle.Draw();
         BeginBlendMode(BLEND_ADDITIVE);
         for (const auto& particle : particles) if (particle.additive) particle.Draw();
         EndBlendMode();
 
-        // Flashing player
-        float flash = sinf(GetTime() * 20); // quick blink
+        float flash = sinf(GetTime() * 20);
         if (flash > 0) p1.Draw();
 
         EndMode2D();
 
     } 
     else{
-    // background (dark red gradient)
         DrawRectangleGradientV(0, 0, screenWidth, screenHeight,
-            (Color){50, 0, 0, 255},   // deep red top
-            (Color){10, 0, 0, 255});  // almost black bottom
+            (Color){50, 0, 0, 255},
+            (Color){10, 0, 0, 255});
 
         // --- Pulsing GAME OVER text ---
         const char* title = "GAME OVER!";
         int fontSize = 80;
 
-        float scale = 1.0f + 0.05f * sinf(GetTime() * 3.0f); // pulsing effect
+        float scale = 1.0f + 0.05f * sinf(GetTime() * 3.0f);
         int baseWidth = MeasureText(title, fontSize);
         int scaledWidth = (int)(baseWidth * scale);
 
@@ -464,7 +444,6 @@ void DrawGameOverScreen() {
             (int)(fontSize * scale),
             RED);
 
-        // --- Options below ---
         const char* retryText = "[R] Click To Retry";
 
         int retryWidth = MeasureText(retryText, 30);
@@ -481,12 +460,12 @@ void UpdateGameOverScreen() {
 
     if(gameOverTimer < gameOverDelay) {
         gameOverTimer += GetFrameTime();
-        return; // don't allow restart yet
+        return;
     }
 
     if (IsKeyPressed(KEY_R)|| IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
         ResetGame();
-        gameState = PLAYING;   // back to start menu
+        gameState = PLAYING;
     }
 }
 
@@ -541,19 +520,15 @@ int main() {
 
             UpdateParticles();
 
-            // Add current player position (center of player)
             trailPositions.push_back({ p1.pos.x + p1.width/2, (p1.gravityDirection == 1) ? p1.pos.y + p1.height - 8 : p1.pos.y + 8});
 
-            // Limit how many points we store (otherwise vector grows forever)
             if (trailPositions.size() > 20) {
                 trailPositions.erase(trailPositions.begin());
             }
 
-            // Combined collision logic for ground and boxes
             std::vector<Rectangle> allRects = groundTiles;
             for (auto& b : boxes) allRects.push_back(b.GetRect());
 
-            // Check for spike collision
             for (auto& s : spikes) {
                 float spikePadding = 5.0f; 
                 Rectangle spikeRect = s.GetRect();
@@ -626,9 +601,8 @@ int main() {
                 // Emit dust along the foot contact line
                 Vector2 foot = { p1.pos.x + p1.width * 0.5f, (p1.gravityDirection == 1) ? (p1.pos.y + p1.height) : p1.pos.y };
 
-                // Dust (normal)
                 for (int i = 0; i < 16; ++i) {
-                    float baseDeg   = (p1.gravityDirection == 1) ? 90.0f : -90.0f; // along the floor plane
+                    float baseDeg   = (p1.gravityDirection == 1) ? 90.0f : -90.0f;
                     float spreadDeg = (float)GetRandomValue(-100, 100);
                     float ang       = (baseDeg + spreadDeg) * DEG2RAD;
                     float speed     = 120.0f + (float)GetRandomValue(0, 80);
@@ -639,10 +613,9 @@ int main() {
                     particles.push_back(Particle(foot, vel, sz, life, dustLandTint, false));
                 }
 
-                // A couple of bright sparks (additive)
                 Color sparkTint = (p1.gravityDirection == 1) ? sparkUpTint : sparkDownTint;
                 for (int i = 0; i < 6; ++i) {
-                    float baseDeg   = (p1.gravityDirection == 1) ? -90.0f : 90.0f; // away from floor
+                    float baseDeg   = (p1.gravityDirection == 1) ? -90.0f : 90.0f;
                     float spreadDeg = (float)GetRandomValue(-50, 50);
                     float ang       = (baseDeg + spreadDeg) * DEG2RAD;
                     float speed     = 200.0f + (float)GetRandomValue(0, 140);
@@ -675,43 +648,36 @@ int main() {
             float worldLeft = camera.target.x - screenWidth;
             float worldRight = camera.target.x + screenWidth;
             
-            // Draw trail before world so player sits on top of everything nicely
             int N = (int)trailPositions.size();
             for (int i = 0; i < N; ++i) {
-                float t = (N > 1) ? (float)i / (N - 1) : 1.0f;     // 0..1 older->newer
-                float radius = 2.0f + 6.0f * t;                    // thinner to thicker
+                float t = (N > 1) ? (float)i / (N - 1) : 1.0f; 
+                float radius = 2.0f + 6.0f * t; 
                 Color base = (p1.gravityDirection == 1) ? trailTintUp : trailTintDown;
-                Color col  = Fade(base, (1.0f - t) * 0.5f); // older ones fade slower, newer ones more transparent                // fade younger points
+                Color col  = Fade(base, (1.0f - t) * 0.5f);
                 DrawCircleV(trailPositions[i], radius, col);
             }
 
             DrawMapTexts();
 
-            // 1) Draw ground first (background)
             for (auto& g : groundTiles) {
                 float centerY = g.y + g.height / 2;
                 Color tint = (centerY < GetScreenHeight() / 2) ? floorDownTint : floorUpTint;
                 DrawTexturePro(floorTexture, { 0, 0, (float)floorTexture.width, (float)floorTexture.height }, g, { 0, 0 }, 0.0f, tint);
             }
 
-            // 2) Draw boxes & spikes (still part of the world)
             for (auto& b : boxes)  b.Draw();
             for (auto& s : spikes) s.Draw();
 
-            // 3) Draw particles ABOVE ground so you can see dust puffs
-            // Normal-blended particles (dust)
             for (const auto& particle : particles) {
                 if (!particle.additive) particle.Draw();
             }
 
-            // Additive-blended particles (sparks)
             BeginBlendMode(BLEND_ADDITIVE);
             for (const auto& particle : particles) {
                 if (particle.additive) particle.Draw();
             }
             EndBlendMode();
 
-            // 4) Draw player last so they’re on top of the dust
             p1.Draw();
             
             EndMode2D();
