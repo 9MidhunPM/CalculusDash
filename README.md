@@ -57,13 +57,14 @@ You need Emscripten installed and activated:
 
 ## 🏗 Project Structure  
 
-- CalculusDash/
-- │── main.cpp
-- │── assets/
-- │── webBuild/
-- │ └── index.html
-- └── README.md
-
+```bash
+CalculusDash/
+│── main.cpp
+│── assets/
+│── webBuild/
+│ └── index.html
+└── README.md
+```
 
 ---
 
