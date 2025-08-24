@@ -79,7 +79,7 @@ int levelRows;
 int levelCols;
 
 //Game states 
-enum GameState { START, PLAYING, GAMEOVER };
+enum GameState { START, PLAYING, GAMEOVER, VICTORY };
 GameState gameState = START;
 
 class Particle {
@@ -275,6 +275,10 @@ std::vector<MapText> mapTexts = {
     {"FLIP TIMEEE!", {6300, screenHeight/2}, 20, YELLOW},
     {"Seems Simple? Good luck!", {7000, 500}, 20, RED},
     {"Hands Hurt Yet??", {9000, 400}, 20, WHITE},
+    {"Yea theese ARE pretty hard good luck!", {8500, 500}, 20, RED},
+    {"Timing is EVERYTHING", {11000, 200}, 20, RED},
+    {"FLIP..FLIP..FLIP..FLIPPP", {10000, 500}, 20, YELLOW},
+    {"AAAND UR DONE.. Good Job u WIN", {12000, 400}, 20, WHITE},
 };
 
 Player p1(restartPosition.x, restartPosition.y);
@@ -455,6 +459,43 @@ void DrawGameOverScreen() {
         }
     }
 
+void DrawVictoryScreen(){
+    DrawRectangleGradientV(0, 0, screenWidth, screenHeight,
+        (Color){255, 255, 0, 255},
+        (Color){255, 255, 255, 255});
+
+    // --- Pulsing Victory text ---
+    const char* title = "VICTORYYY!";
+    int fontSize = 80;
+
+    float scale = 1.0f + 0.05f * sinf(GetTime() * 3.0f);
+    int baseWidth = MeasureText(title, fontSize);
+    int scaledWidth = (int)(baseWidth * scale);
+
+    DrawText(title,
+        screenWidth/2 - scaledWidth/2,
+        screenHeight/3,
+        (int)(fontSize * scale),
+        RED);
+    const char* victory1Text = "You Finished the Level! Your reward is Flex Points +1000";
+
+    int victory1Width = MeasureText(victory1Text, 30);
+
+    DrawText(victory1Text,
+        screenWidth/2 - victory1Width/2,
+        screenHeight/2 + 100,
+        30, BLACK);    
+
+    const char* victory2Text = "(send me ss i want opinions)";
+
+    int victory2Width = MeasureText(victory2Text, 30);
+
+    DrawText(victory2Text,
+        screenWidth/2 - victory2Width/2,
+        screenHeight/2 + 200,
+        30, GRAY);   
+}
+
 void UpdateGameOverScreen() {
     gameOverTimer += GetFrameTime();
 
@@ -503,7 +544,9 @@ int main() {
             
             //DEVELOPMENT CHEATS MAKE SURE TO DELETE LATER U CHILD DONT U DARE FORGET MIDHUN
             if(IsKeyPressed(KEY_O)) (p1.gravityDirection == 1) ? p1.pos.y -= 300 : p1.pos.y += 300; // debug gravity flip
-            if(IsKeyPressed(KEY_P)) p1.pos.x += 300; // debug forward
+            if(IsKeyPressed(KEY_P)) p1.pos.x += 600; // debug forward
+
+            if (p1.pos.x > 12500) gameState = VICTORY;
             
             DrawWorld();
             
@@ -530,7 +573,7 @@ int main() {
             for (auto& b : boxes) allRects.push_back(b.GetRect());
 
             for (auto& s : spikes) {
-                float spikePadding = 5.0f; 
+                float spikePadding = 8.0f; 
                 Rectangle spikeRect = s.GetRect();
                 spikeRect.x += spikePadding;
                 spikeRect.y += spikePadding;
@@ -686,6 +729,9 @@ int main() {
         else if (gameState == GAMEOVER){
             DrawGameOverScreen();
             UpdateGameOverScreen();
+        }
+        else if (gameState == VICTORY){
+            DrawVictoryScreen();
         }   
 
         EndDrawing();
